@@ -25,9 +25,9 @@ from sklearn.model_selection import KFold
 
 from scipy import interpolate
 
-data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_resized'
+data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_mini'
 
-pairs_path = r'c:\users\mrdas\documents\cynapto_folder\merged\pairs.txt'
+pairs_path = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_test_set\pairs.txt'
 cfg_path = r"c:\users\mrdas\documents\cynapto_folder\merged\arcface_tf2\configs\arc_res50.yaml"
 
 
@@ -242,8 +242,8 @@ def perform_val(embedding_size, batch_size, model,
 
     for idx in tqdm.tqdm(range(0, len(carray), batch_size)):
         batch = carray[idx:idx + batch_size]
-        batch = np.transpose(batch, [0, 2, 3, 1]) * 0.5 + 0.5
-        batch = batch[:, :, :, ::-1]  # convert BGR to RGB
+        batch = np.transpose(batch, [1, 2, 0]) * 0.5 + 0.5
+        batch = batch[:, :, ::-1]  # convert BGR to RGB
 
         if is_ccrop:
             batch = ccrop_batch(batch)
