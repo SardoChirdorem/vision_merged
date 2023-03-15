@@ -116,12 +116,11 @@ def perform_val(embedding_size, batch_size, model,
 
     for idx in tqdm.tqdm(range(0, len(carray), batch_size)):
         batch = carray[idx:idx + batch_size]
+        print(f"THE SHAPE IS:{batch.shape}")
         batch = np.transpose(batch, [0, 2, 3, 1]) * 0.5 + 0.5
         batch = batch[:, :, :, ::-1]  # convert BGR to RGB
         oima = batch[0]
-        oima_n = np.array(oima)
-        plt.imshow(oima_n, interpolation="nearest")
-        plt.show()
+        print(f"THE SHAPE IS:{batch.shape}")
 
         if is_ccrop:
             batch = ccrop_batch(batch)

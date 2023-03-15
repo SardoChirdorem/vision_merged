@@ -25,7 +25,7 @@ from sklearn.model_selection import KFold
 
 from scipy import interpolate
 
-data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_mini'
+data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_mini_resized'
 
 pairs_path = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_test_set\pairs.txt'
 cfg_path = r"c:\users\mrdas\documents\cynapto_folder\merged\arcface_tf2\configs\arc_res50.yaml"
@@ -42,7 +42,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Running on device: {}'.format(device))
 mtcnn = MTCNN(
 
-    image_size=160,
+    image_size=112,
 
     margin=14,
 
@@ -133,32 +133,38 @@ embed_loader = DataLoader(
 )
 # Load pretrained resnet model
 
-resnet = InceptionResnetV1(
-
-    classify=False,
-
-    pretrained='vggface2'
-
-).to(device)
+#resnet = InceptionResnetV1(
+#
+#    classify=False,
+#
+#    pretrained='vggface2'
+#
+#).to(device)
 classes = []
 
-embeddings = []
+#resnet.eval()
 
-resnet.eval()
+#with torch.no_grad():
+#
+#    for xb, yb in embed_loader:
+#
+#        xb = xb.to(device)
+#
+#        b_embeddings = resnet(xb)
+#
+#        b_embeddings = b_embeddings.to('cpu').numpy()
+#
+#        classes.extend(yb.numpy())
+#
+#        embeddings.extend(b_embeddings)
+#embeddings_dict = dict(zip(crop_paths,embeddings))
 
-with torch.no_grad():
+for i, (xb, yb) in enumerate(embed_loader):
+    if i == 0:
+        embeddings = xb
+    else:
+        embeddings = np.concatenate((embeddings, xb), axis = 0)    
 
-    for xb, yb in embed_loader:
-
-        xb = xb.to(device)
-
-        b_embeddings = resnet(xb)
-
-        b_embeddings = b_embeddings.to('cpu').numpy()
-
-        classes.extend(yb.numpy())
-
-        embeddings.extend(b_embeddings)
 embeddings_dict = dict(zip(crop_paths,embeddings))
 
 def add_extension(path):
@@ -242,8 +248,8 @@ def perform_val(embedding_size, batch_size, model,
 
     for idx in tqdm.tqdm(range(0, len(carray), batch_size)):
         batch = carray[idx:idx + batch_size]
-        batch = np.transpose(batch, [1, 2, 0]) * 0.5 + 0.5
-        batch = batch[:, :, ::-1]  # convert BGR to RGB
+        batch = np.transpose(batch, [0, 2, 3, 1]) * 0.5 + 0.5
+        batch = batch[:, :, :, ::-1]  # convert BGR to RGB
 
         if is_ccrop:
             batch = ccrop_batch(batch)
@@ -499,9 +505,15 @@ def calculate_val_far(threshold, dist, actual_issame):
 
     n_diff = np.sum(np.logical_not(actual_issame))
 
-    val = float(true_accept) / float(n_same)
+    try:
+        val = float(true_accept) / float(n_same)
+    except ZeroDivisionError:
+        val = np.inf
 
-    far = float(false_accept) / float(n_diff)
+    try:
+        far = float(false_accept) / float(n_diff)
+    except ZeroDivisionError:
+        far = np.inf
 
     return val, far
 
@@ -538,4 +550,4 @@ embeddings2 = perform_val(
 tpr, fpr, accuracy, val, val_std, far, fp, fn = evaluate(embeddings2, issame_list)
 print(accuracy)
 
-np.mean(accuracy)
+print(np.mean(accuracy))

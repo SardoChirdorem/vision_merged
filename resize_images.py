@@ -5,7 +5,7 @@ from tqdm import tqdm
 from uuid import uuid4
 import sys
 
-SIZE = 160
+SIZE = 112
 
 class Resize_Images:
     def __init__(self, PATH_input_dir, PATH_output_dir) -> None:
