@@ -190,40 +190,14 @@ def get_paths(lfw_dir, pairs):
     issame_list = []
 
     for pair in pairs:
+        path1 = pair[0]
+        path2 = pair[1]
+        issame = True if pair[-1] == "true" else False
 
-        if len(pair) == 2:
-
-            #path0 = add_extension(os.path.join(lfw_dir, pair[0], pair[0] + '_' + '%04d' % int(pair[1])))
-
-            #path1 = add_extension(os.path.join(lfw_dir, pair[0], pair[0] + '_' + '%04d' % int(pair[2])))
-
-            issame = True
-
-        elif len(pair) == 3:
-
-            #path0 = add_extension(os.path.join(lfw_dir, pair[0], pair[0] + '_' + '%04d' % int(pair[1])))
-
-            #path1 = add_extension(os.path.join(lfw_dir, pair[2], pair[2] + '_' + '%04d' % int(pair[3])))
-
-            issame = False
-
-        #if os.path.exists(path0) and os.path.exists(path1):    # Only add the pair if both paths exist
-
-            #path_list += (path0,path1)
-
+        path_list += (path1, path2)
         issame_list.append(issame)
-
-        #else:
-
-            #nrof_skipped_pairs += 1
-
-    #if nrof_skipped_pairs>0:
-
-        #print('Skipped %d image pairs' % nrof_skipped_pairs)
-
-
-
-    return issame_list
+ 
+    return path_list, issame_list
 
 
 
