@@ -163,7 +163,7 @@ trans = transforms.Compose([
 ])
 
 generate = GeneratePairs(
-    data_dir= data_dir+"cropped",
+    data_dir= data_dir+"_cropped",
     pairs_filepath= r"c:\users\mrdas\documents\pairs.txt",
     img_ext= ".jpg"
 )

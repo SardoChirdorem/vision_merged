@@ -12,19 +12,21 @@ class Resize_Images:
         self.PATH_input_dir = PATH_input_dir
         self.PATH_output_dir = PATH_output_dir
 
-        if os.path.exists(self.PATH_output_dir):
-            shutil.rmtree(self.PATH_output_dir)
-
         # os.makedirs(PATH_output_dir, exist_ok=True)
-
-        shutil.copytree(self.PATH_input_dir, self.PATH_output_dir, ignore=self.ignore_files)
+        try:
+            shutil.copytree(self.PATH_input_dir, self.PATH_output_dir, ignore=self.ignore_files)
+        except:
+            pass
 
     def ignore_files(self, dir, files):
         return [f for f in files if os.path.isfile(os.path.join(dir, f))]
 
 
-    def resize(self):
+    def resize(self):    
         for folder in tqdm(os.listdir(self.PATH_input_dir)):
+            if os.path.exists(self.PATH_output_dir):
+                print("PATH EXISTS ALREADY, SKIPPING THE RESIZE PROCEDURE")
+                break
             PATH_folder = os.path.join(self.PATH_input_dir, folder)
             for image in os.listdir(PATH_folder):
                 img = cv2.imread(os.path.join(PATH_folder, image))
