@@ -17,7 +17,7 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from arcface_tf2.modules.evaluations import get_val_data, perform_val
+from arcface_tf2.modules.evaluations import get_val_data
 from arcface_tf2.modules.models import ArcFaceModel
 from arcface_tf2.modules.utils import set_memory_growth, load_yaml, l2_norm
 
@@ -25,9 +25,9 @@ from sklearn.model_selection import KFold
 
 from scipy import interpolate
 
-data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_mini_resized'
+data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_mini'
 
-pairs_path = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_test_set\pairs.txt'
+pairs_path = r'c:\users\mrdas\documents\pairs.txt'
 cfg_path = r"c:\users\mrdas\documents\cynapto_folder\merged\arcface_tf2\configs\arc_res50.yaml"
 
 
@@ -35,6 +35,46 @@ cfg_path = r"c:\users\mrdas\documents\cynapto_folder\merged\arcface_tf2\configs\
 batch_size = 16
 
 epochs = 15
+
+cfg = load_yaml(cfg_path)
+
+model = ArcFaceModel(size=cfg['input_size'],
+                         backbone_type=cfg['backbone_type'],
+                         training=False)
+
+def ccrop_batch(imgs):
+    assert len(imgs.shape) == 4
+    resized_imgs = np.array([cv2.resize(img, (128, 128)) for img in imgs])
+    ccropped_imgs = resized_imgs[:, 8:-8, 8:-8, :]
+
+    return ccropped_imgs
+
+
+def hflip_batch(imgs):
+    assert len(imgs.shape) == 4
+    return imgs[:, :, ::-1, :]
+
+def perform_val(embedding_size, batch_size, model,
+                carray, nrof_folds=10, is_ccrop=False, is_flip=True):
+    """perform val"""
+    embeddings = np.zeros([len(carray), embedding_size])
+
+    for idx in tqdm.tqdm(range(0, len(carray), batch_size)):
+        batch = carray[idx:idx + batch_size]
+        batch = np.transpose(batch, [0, 2, 3, 1]) * 0.5 + 0.5
+        batch = batch[:, :, :, ::-1]  # convert BGR to RGB
+
+        if is_ccrop:
+            batch = ccrop_batch(batch)
+        if is_flip:
+            fliped = hflip_batch(batch)
+            emb_batch = model(batch) + model(fliped)
+            embeddings[idx:idx + batch_size] = l2_norm(emb_batch)
+        else:
+            emb_batch = model(batch)
+            embeddings[idx:idx + batch_size] = l2_norm(emb_batch)
+
+    return embeddings
 
 workers = 0 if os.name == 'nt' else 8
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -165,7 +205,11 @@ for i, (xb, yb) in enumerate(embed_loader):
     else:
         embeddings = np.concatenate((embeddings, xb), axis = 0)    
 
-embeddings_dict = dict(zip(crop_paths,embeddings))
+embeddings2 = perform_val(
+            cfg['embd_shape'], cfg['batch_size'], model, embeddings,
+            is_ccrop=cfg['is_ccrop'])
+
+embeddings_dict = dict(zip(crop_paths,embeddings2))
 
 def add_extension(path):
 
@@ -215,45 +259,9 @@ def read_pairs(pairs_filename):
 
     return np.array(pairs, dtype=object)
 
-def perform_val(embedding_size, batch_size, model,
-                carray, nrof_folds=10, is_ccrop=False, is_flip=True):
-    """perform val"""
-    embeddings = np.zeros([len(carray), embedding_size])
-
-    for idx in tqdm.tqdm(range(0, len(carray), batch_size)):
-        batch = carray[idx:idx + batch_size]
-        batch = np.transpose(batch, [0, 2, 3, 1]) * 0.5 + 0.5
-        batch = batch[:, :, :, ::-1]  # convert BGR to RGB
-
-        if is_ccrop:
-            batch = ccrop_batch(batch)
-        if is_flip:
-            fliped = hflip_batch(batch)
-            emb_batch = model(batch) + model(fliped)
-            embeddings[idx:idx + batch_size] = l2_norm(emb_batch)
-        else:
-            emb_batch = model(batch)
-            embeddings[idx:idx + batch_size] = l2_norm(emb_batch)
-
-    return embeddings
-
-def ccrop_batch(imgs):
-    assert len(imgs.shape) == 4
-    resized_imgs = np.array([cv2.resize(img, (128, 128)) for img in imgs])
-    ccropped_imgs = resized_imgs[:, 8:-8, 8:-8, :]
-
-    return ccropped_imgs
 
 
-def hflip_batch(imgs):
-    assert len(imgs.shape) == 4
-    return imgs[:, :, ::-1, :]
 
-cfg = load_yaml(cfg_path)
-
-model = ArcFaceModel(size=cfg['input_size'],
-                         backbone_type=cfg['backbone_type'],
-                         training=False)
 
 def distance(embeddings1, embeddings2, distance_metric=0):
 
@@ -515,13 +523,11 @@ def evaluate(embeddings, actual_issame, nrof_folds=10, distance_metric=0, subtra
 
 pairs = read_pairs(pairs_path)
 
-issame_list = get_paths(data_dir+'_cropped', pairs)
+path_list, issame_list = get_paths(data_dir+'_cropped', pairs)
 
-embeddings2 = perform_val(
-            cfg['embd_shape'], cfg['batch_size'], model, embeddings, issame_list,
-            is_ccrop=cfg['is_ccrop'])
+embeddings_n = np.array([embeddings_dict[path] for path in path_list])
 
-tpr, fpr, accuracy, val, val_std, far, fp, fn = evaluate(embeddings2, issame_list)
+tpr, fpr, accuracy, val, val_std, far, fp, fn = evaluate(embeddings_n, issame_list)
 print(accuracy)
 
 print(np.mean(accuracy))
