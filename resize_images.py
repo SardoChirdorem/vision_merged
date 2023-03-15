@@ -12,10 +12,13 @@ class Resize_Images:
         self.PATH_input_dir = PATH_input_dir
         self.PATH_output_dir = PATH_output_dir
 
+        if os.path.exists(self.PATH_output_dir):
+            shutil.rmtree(self.PATH_output_dir)
+
         # os.makedirs(PATH_output_dir, exist_ok=True)
 
         shutil.copytree(self.PATH_input_dir, self.PATH_output_dir, ignore=self.ignore_files)
-        self.resize()
+
     def ignore_files(self, dir, files):
         return [f for f in files if os.path.isfile(os.path.join(dir, f))]
 
@@ -32,3 +35,4 @@ if __name__ == "__main__":
     PATH_input_folder = sys.argv[1]
     PATH_output = sys.argv[2]
     obj = Resize_Images(PATH_input_folder, PATH_output)
+    obj.resize()

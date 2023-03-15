@@ -24,13 +24,21 @@ from arcface_tf2.modules.utils import set_memory_growth, load_yaml, l2_norm
 from sklearn.model_selection import KFold
 
 from scipy import interpolate
+from generate_copy import GeneratePairs
+from resize_images import Resize_Images
 
-data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_mini'
+data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_test_set\fr_test_set'
 
-pairs_path = r'c:\users\mrdas\documents\pairs.txt'
 cfg_path = r"c:\users\mrdas\documents\cynapto_folder\merged\arcface_tf2\configs\arc_res50.yaml"
 
+resize = Resize_Images(
+    data_dir,
+    os.path.join(os.path.split(data_dir)[0], "fr_resized")
+)
 
+resize.resize()
+
+data_dir = resize.PATH_output_dir
 
 batch_size = 16
 
@@ -154,7 +162,14 @@ trans = transforms.Compose([
 
 ])
 
+generate = GeneratePairs(
+    data_dir= data_dir+"cropped",
+    pairs_filepath= r"c:\users\mrdas\documents\pairs.txt",
+    img_ext= ".jpg"
+)
+generate.generate()
 
+pairs_path = generate.pairs_filepath
 
 dataset = datasets.ImageFolder(data_dir + '_cropped', transform=trans)
 
