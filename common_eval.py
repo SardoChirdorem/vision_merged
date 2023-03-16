@@ -164,7 +164,7 @@ trans = transforms.Compose([
 
 generate = GeneratePairs(
     data_dir= data_dir+"_cropped",
-    pairs_filepath= r"c:\users\mrdas\documents\pairs.txt",
+    pairs_filepath= os.path.join(os.path.split(data_dir+"_cropped")[0], "pairs.txt"),
     img_ext= ".jpg"
 )
 generate.generate()
