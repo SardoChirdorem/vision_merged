@@ -26,6 +26,7 @@ from sklearn.model_selection import KFold
 from scipy import interpolate
 from generate_copy import GeneratePairs
 from resize_images import Resize_Images
+from tqdm import tqdm
 
 data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_test_set\fr_test_set'
 
@@ -214,7 +215,7 @@ classes = []
 #        embeddings.extend(b_embeddings)
 #embeddings_dict = dict(zip(crop_paths,embeddings))
 
-for i, (xb, yb) in enumerate(embed_loader):
+for i, (xb, yb) in tqdm(enumerate(embed_loader)):
     if i == 0:
         embeddings = xb
     else:
@@ -342,7 +343,7 @@ def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame, nrof_fold
 
 
 
-    for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
+    for fold_idx, (train_set, test_set) in tqdm(enumerate(k_fold.split(indices))):
 
         if subtract_mean:
 

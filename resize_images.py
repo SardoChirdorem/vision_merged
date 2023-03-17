@@ -25,7 +25,7 @@ class Resize_Images:
     def resize(self):    
         for folder in tqdm(os.listdir(self.PATH_input_dir)):
             if os.path.exists(self.PATH_output_dir):
-                print("PATH EXISTS ALREADY, SKIPPING THE RESIZE PROCEDURE")
+                print("PATH ALREADY EXISTS, SKIPPING THE RESIZE")
                 break
             PATH_folder = os.path.join(self.PATH_input_dir, folder)
             for image in os.listdir(PATH_folder):
