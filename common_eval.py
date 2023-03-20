@@ -41,7 +41,7 @@ resize.resize()
 
 data_dir = resize.PATH_output_dir
 
-batch_size = 16
+batch_size = 128
 
 epochs = 15
 
@@ -136,6 +136,9 @@ box_probs = []
 
 
 for i, (x, b_paths) in enumerate(loader):
+    if os.path.exists(data_dir + "_cropped"):
+        print("ALREADY CROPPED, SKIPPING CROP")
+        break
 
     crops = [p.replace(data_dir, data_dir + '_cropped') for p in b_paths]
 
@@ -215,7 +218,7 @@ classes = []
 #        embeddings.extend(b_embeddings)
 #embeddings_dict = dict(zip(crop_paths,embeddings))
 
-for i, (xb, yb) in tqdm(enumerate(embed_loader)):
+for i, (xb, yb) in tqdm(enumerate(embed_loader), total=len(embed_loader)):
     if i == 0:
         embeddings = xb
     else:
