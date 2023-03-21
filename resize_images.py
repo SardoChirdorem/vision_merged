@@ -5,7 +5,7 @@ from tqdm import tqdm
 from uuid import uuid4
 import sys
 
-SIZE = 112
+SIZE = 160
 
 class Resize_Images:
     def __init__(self, PATH_input_dir, PATH_output_dir) -> None:
@@ -24,9 +24,6 @@ class Resize_Images:
 
     def resize(self):    
         for folder in tqdm(os.listdir(self.PATH_input_dir)):
-            if os.path.exists(self.PATH_output_dir):
-                print("PATH ALREADY EXISTS, SKIPPING THE RESIZE")
-                break
             PATH_folder = os.path.join(self.PATH_input_dir, folder)
             for image in os.listdir(PATH_folder):
                 img = cv2.imread(os.path.join(PATH_folder, image))
