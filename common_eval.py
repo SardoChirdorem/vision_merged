@@ -221,11 +221,11 @@ classes = []
 #        embeddings.extend(b_embeddings)
 #embeddings_dict = dict(zip(crop_paths,embeddings))
 
-for i, (xb, yb) in tqdm(enumerate(embed_loader), total=len(embed_loader)):
-    if i == 0:
-        embeddings = xb
-    else:
-        embeddings = np.concatenate((embeddings, xb), axis = 0)    
+em_list = []
+for i, (xb, yb) in tqdm(enumerate(embed_loader), total=len(embed_loader)):  
+    em_list.append(xb)
+
+embeddings = np.concatenate(em_list, axis=0)
 
 embeddings2 = perform_val(
             cfg['embd_shape'], cfg['batch_size'], model, embeddings,
