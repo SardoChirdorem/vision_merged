@@ -37,7 +37,10 @@ resize = Resize_Images(
     os.path.join(os.path.split(data_dir)[0], "fr_resized")
 )
 
-resize.resize()
+try:
+    resize.resize()
+except FileExistsError:
+    print("\n\nAlready resized, skipping resize\n\n")
 
 data_dir = resize.PATH_output_dir
 
@@ -136,7 +139,7 @@ box_probs = []
 
 
 for i, (x, b_paths) in enumerate(loader):
-    if os.path.exists(data_dir + "_cropped"):
+    if os.path.exists(data_dir + "_cropped") and i == 0:
         print("ALREADY CROPPED, SKIPPING CROP")
         break
 
