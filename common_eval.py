@@ -27,8 +27,9 @@ from scipy import interpolate
 from generate_copy import GeneratePairs
 from resize_images import Resize_Images
 from tqdm import tqdm
+from gen_mod import gen_ran
 
-data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_test_set\fr_test_set'
+data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_copy'
 
 cfg_path = r"c:\users\mrdas\documents\cynapto_folder\merged\arcface_tf2\configs\arc_res50.yaml"
 
@@ -71,7 +72,7 @@ def perform_val(embedding_size, batch_size, model,
     """perform val"""
     embeddings = np.zeros([len(carray), embedding_size])
 
-    for idx in tqdm.tqdm(range(0, len(carray), batch_size)):
+    for idx in tqdm(range(0, len(carray), batch_size)):
         batch = carray[idx:idx + batch_size]
         batch = np.transpose(batch, [0, 2, 3, 1]) * 0.5 + 0.5
         batch = batch[:, :, :, ::-1]  # convert BGR to RGB
@@ -139,16 +140,24 @@ box_probs = []
 
 
 for i, (x, b_paths) in enumerate(loader):
-    if os.path.exists(data_dir + "_cropped") and i == 0:
-        print("ALREADY CROPPED, SKIPPING CROP")
-        break
-
-    crops = [p.replace(data_dir, data_dir + '_cropped') for p in b_paths]
-
-    mtcnn(x, save_path=crops)
-
+    #crops = [p.replace(data_dir, data_dir + '_cropped') for p in b_paths]
+    crops = []
+    for p in b_paths:
+        q = p.replace(data_dir, data_dir + "_cropped")
+        crops.append(q)
     crop_paths.extend(crops)
 
+for i, (x, b_paths) in enumerate(loader):
+    if os.path.exists(data_dir + "_cropped") and i == 0:
+        print("\n\nAlready cropped, skipping crop\n\n")
+        break
+
+    crops = []
+    for p in b_paths:
+        q = p.replace(data_dir, data_dir + "_cropped")
+        crops.append(q)
+
+    mtcnn(x, save_path=crops)
     print('\rBatch {} of {}'.format(i + 1, len(loader)), end='')
 # Remove mtcnn to reduce GPU memory usage
 
@@ -169,14 +178,14 @@ trans = transforms.Compose([
 
 ])
 
-generate = GeneratePairs(
-    data_dir= data_dir+"_cropped",
-    pairs_filepath= os.path.join(os.path.split(data_dir+"_cropped")[0], "pairs.txt"),
-    img_ext= ".jpg"
-)
-generate.generate()
-
-pairs_path = generate.pairs_filepath
+#generate = GeneratePairs(
+#    data_dir= data_dir+"_cropped",
+#    pairs_filepath= os.path.join(os.path.split(data_dir+"_cropped")[0], "pairs.txt"),
+#    img_ext= ".jpg"
+#)
+#generate.generate()
+#
+#pairs_path = generate.pairs_filepath
 
 dataset = datasets.ImageFolder(data_dir + '_cropped', transform=trans)
 
@@ -222,7 +231,9 @@ classes = []
 #embeddings_dict = dict(zip(crop_paths,embeddings))
 
 em_list = []
-for i, (xb, yb) in tqdm(enumerate(embed_loader), total=len(embed_loader)):  
+crop2 = []
+for i, (xb, yb) in tqdm(enumerate(embed_loader), total=len(embed_loader)): 
+    crop2.extend(yb)
     em_list.append(xb)
 
 embeddings = np.concatenate(em_list, axis=0)
@@ -232,6 +243,15 @@ embeddings2 = perform_val(
             is_ccrop=cfg['is_ccrop'])
 
 embeddings_dict = dict(zip(crop_paths,embeddings2))
+
+pairs_path = os.path.join(os.path.split(data_dir)[0], "pairs.txt")
+
+pgen_list = sorted(list(embeddings_dict.keys()))
+
+gen_ran(
+    pgen_list,
+    pairs_path
+)
 
 def add_extension(path):
 
@@ -256,8 +276,8 @@ def get_paths(lfw_dir, pairs):
     issame_list = []
 
     for pair in pairs:
-        path1 = pair[0]
-        path2 = pair[1]
+        path1 = os.path.join(pair[0], "").strip("\\")
+        path2 = os.path.join(pair[1], "").strip("\\")
         issame = True if pair[-1] == "true" else False
 
         path_list += (path1, path2)
