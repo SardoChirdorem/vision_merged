@@ -10,11 +10,10 @@ import math
 import numpy as np
 
 import os
-data_dir = r'c:\users\mrdas\lovo.jpg'
+from PIL import Image
+import torchvision.transforms.functional as TF
 
-pairs_path = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_test_set\fr_test_set'
-
-
+image_path = r'c:\users\mrdas\lovo.jpg'
 
 batch_size = 16
 
@@ -35,53 +34,6 @@ mtcnn = MTCNN(
     selection_method='center_weighted_size'
 
 )
-# Define the data loader for the input set of images
-
-orig_img_ds = datasets.ImageFolder(data_dir, transform=None)
-
-
-# overwrites class labels in dataset with path so path can be used for saving output in mtcnn batches
-
-orig_img_ds.samples = [
-
-    (p, p)
-
-    for p, _ in orig_img_ds.samples
-
-]
-
-
-
-loader = DataLoader(
-
-    orig_img_ds,
-
-    num_workers=workers,
-
-    batch_size=batch_size,
-
-    collate_fn=training.collate_pil
-
-)
-
-crop_paths = []
-
-box_probs = []
-
-
-
-for i, (x, b_paths) in enumerate(loader):
-
-    crops = [p.replace(data_dir, data_dir + '_cropped') for p in b_paths]
-
-    mtcnn(x, save_path=crops)
-
-    crop_paths.extend(crops)
-
-    print('\rBatch {} of {}'.format(i + 1, len(loader)), end='')
-# Remove mtcnn to reduce GPU memory usage
-
-del mtcnn
 
 torch.cuda.empty_cache()
 # create dataset and data loaders from cropped images output from MTCNN
@@ -98,23 +50,6 @@ trans = transforms.Compose([
 
 ])
 
-
-
-dataset = datasets.ImageFolder(data_dir + '_cropped', transform=trans)
-
-
-
-embed_loader = DataLoader(
-
-    dataset,
-
-    num_workers=workers,
-
-    batch_size=batch_size,
-
-    sampler=SequentialSampler(dataset)
-
-)
 # Load pretrained resnet model
 
 resnet = InceptionResnetV1(
@@ -124,28 +59,26 @@ resnet = InceptionResnetV1(
     pretrained='vggface2'
 
 ).to(device)
-classes = []
-
-embeddings = []
 
 resnet.eval()
 
 with torch.no_grad():
+    image = Image.open(image_path)
+    image.resize((160,160))
+    x = mtcnn(image)
 
-    for xb, yb in embed_loader:
+    x.unsqueeze_(0)
 
-        xb = xb.to(device)
+    x = x.to(device)
 
-        b_embeddings = resnet(xb)
+    b_embeddings = resnet(x)
 
-        b_embeddings = b_embeddings.to('cpu').numpy()
+    b_embeddings = b_embeddings.to('cpu').numpy()
 
-        classes.extend(yb.numpy())
-
-        embeddings.extend(b_embeddings)
-embeddings_dict = dict(zip(crop_paths,embeddings))
+    print(b_embeddings)
 
 
+del mtcnn
 
 from sklearn.model_selection import KFold
 
@@ -490,18 +423,18 @@ def read_pairs(pairs_filename):
             pairs.append(pair)
 
     return np.array(pairs, dtype=object)
-pairs = read_pairs(pairs_path)
-
-path_list, issame_list = get_paths(data_dir+'_cropped', pairs)
-
-embeddings = np.array([embeddings_dict[path] for path in path_list])
-
-
-
-tpr, fpr, accuracy, val, val_std, far, fp, fn = evaluate(embeddings, issame_list)
-print(accuracy)
-
-np.mean(accuracy)
+#pairs = read_pairs(pairs_path)
+#
+#path_list, issame_list = get_paths(data_dir+'_cropped', pairs)
+#
+#embeddings = np.array([embeddings_dict[path] for path in path_list])
+#
+#
+#
+#tpr, fpr, accuracy, val, val_std, far, fp, fn = evaluate(embeddings, issame_list)
+#print(accuracy)
+#
+#np.mean(accuracy)
 
 
 
