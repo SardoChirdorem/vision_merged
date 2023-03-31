@@ -62,21 +62,30 @@ resnet = InceptionResnetV1(
 
 resnet.eval()
 
-with torch.no_grad():
-    image = Image.open(image_path)
-    image.resize((160,160))
-    x = mtcnn(image)
+def get_emb(image_path):
+    with torch.no_grad():
+        image = Image.open(image_path)
+        image.resize((160,160))
+        x = mtcnn(image)
 
-    x.unsqueeze_(0)
+        x.unsqueeze_(0)
 
-    x = x.to(device)
+        x = x.to(device)
 
-    b_embeddings = resnet(x)
+        b_embeddings = resnet(x)
 
-    b_embeddings = b_embeddings.to('cpu').numpy()
+        b_embeddings = b_embeddings.to('cpu').numpy()
 
-    print(b_embeddings)
+        print(b_embeddings)
 
+        with open(r"c:\users\mrdas\documents\cynapto_folder\datasets\embeddings.txt", "a", encoding="utf-8") as f:
+            f.write(str(b_embeddings))
+            f.write("\n\n")
+            f.write(os.path.split(image_path)[1])
+            f.write("\n\n")
+
+for imog in os.listdir(r"c:\users\mrdas\documents\cynapto_folder\datasets\frameim"):
+    get_emb(os.path.join(r"c:\users\mrdas\documents\cynapto_folder\datasets\frameim", imog))
 
 del mtcnn
 
