@@ -12,6 +12,7 @@ import numpy as np
 import os
 from PIL import Image
 import torchvision.transforms.functional as TF
+#import matplotlib.pyplot as plt
 
 image_path = r'c:\users\mrdas\lovo.jpg'
 
@@ -62,32 +63,41 @@ resnet = InceptionResnetV1(
 
 resnet.eval()
 
-def get_emb(image_path):
+def get_emb(image):
     with torch.no_grad():
-        image = Image.open(image_path)
+        #image = Image.open(image_path)
         image.resize((160,160))
         x = mtcnn(image)
 
-        x.unsqueeze_(0)
+        #plt.imshow(x.permute(1,2,0))
+        #plt.show()
 
-        x = x.to(device)
+        if x is not None:
+            x.unsqueeze_(0)
 
-        b_embeddings = resnet(x)
+            x = x.to(device)
 
-        b_embeddings = b_embeddings.to('cpu').numpy()
+            b_embeddings = resnet(x)
 
-        print(b_embeddings)
+            b_embeddings = b_embeddings.to('cpu').numpy()
 
-        with open(r"c:\users\mrdas\documents\cynapto_folder\datasets\embeddings.txt", "a", encoding="utf-8") as f:
-            f.write(str(b_embeddings))
-            f.write("\n\n")
-            f.write(os.path.split(image_path)[1])
-            f.write("\n\n")
+        else:
+            return None
 
-for imog in os.listdir(r"c:\users\mrdas\documents\cynapto_folder\datasets\frameim"):
-    get_emb(os.path.join(r"c:\users\mrdas\documents\cynapto_folder\datasets\frameim", imog))
+        #print(b_embeddings)
 
-del mtcnn
+        #with open(r"c:\users\mrdas\documents\cynapto_folder\datasets\embeddings.txt", "a", encoding="utf-8") as f:
+        #    f.write(str(b_embeddings))
+        #    f.write("\n\n")
+        #    f.write(os.path.split(image_path)[1])
+        #    f.write("\n\n")
+
+    return b_embeddings
+
+#for imog in os.listdir(r"c:\users\mrdas\documents\cynapto_folder\datasets\cv_cropped"):
+#    get_emb(os.path.join(r"c:\users\mrdas\documents\cynapto_folder\datasets\cv_cropped", imog))
+
+#del mtcnn
 
 from sklearn.model_selection import KFold
 

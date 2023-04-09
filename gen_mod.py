@@ -19,7 +19,10 @@ def gen_ran(lst, pairs_filepath):
         else:
             pth1 = random.choice(lst)
             rund = random.choice([-1,1])
-            pth2 = lst[lst.index(pth1)+rund]
+            try:
+                pth2 = lst[lst.index(pth1)+rund]
+            except IndexError:
+                pth2 = lst[lst.index(pth1)-1]
 
             with open(pairs_filepath, "a") as f:
                 if os.path.split(pth1)[0] == os.path.split(pth2)[0]:

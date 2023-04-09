@@ -10,17 +10,17 @@ import os
 import tqdm
 from PIL import Image
 import onnxruntime as ort
-import onnx
+#import onnx
 
-from absl import app, flags, logging
-from absl.flags import FLAGS
+#from absl import app, flags, logging
+#from absl.flags import FLAGS
 
 import cv2
 import os
 import numpy as np
-import tensorflow as tf
+#import tensorflow as tf
 
-from arcface_tf2.modules.evaluations import get_val_data
+#from arcface_tf2.modules.evaluations import get_val_data
 from arcface_tf2.modules.models import ArcFaceModel
 from arcface_tf2.modules.utils import set_memory_growth, load_yaml, l2_norm
 
@@ -32,23 +32,23 @@ from resize_images import Resize_Images
 from tqdm import tqdm
 from gen_mod import gen_ran
 
-data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\registered_faces'
+data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_copy'
 
 cfg_path = r"c:\users\mrdas\documents\cynapto_folder\merged\arcface_tf2\configs\arc_res50.yaml"
 
-resize = Resize_Images(
-    data_dir,
-    os.path.join(os.path.split(data_dir)[0], "registered_resize")
-)
+#resize = Resize_Images(
+#    data_dir,
+#    os.path.join(os.path.split(data_dir)[0], "fr_resized")
+#)
+#
+#try:
+#    resize.resize()
+#except FileExistsError:
+#    print("\n\nAlready resized, skipping resize\n\n")
 
-try:
-    resize.resize()
-except FileExistsError:
-    print("\n\nAlready resized, skipping resize\n\n")
+#data_dir = resize.PATH_output_dir
 
-data_dir = resize.PATH_output_dir
-
-batch_size = 512
+batch_size = 128
 
 epochs = 15
 
@@ -78,6 +78,7 @@ def perform_val(embedding_size, batch_size, model,
     for idx in tqdm(range(0, len(carray), batch_size)):
         batch = carray[idx:idx + batch_size]
         batch = np.transpose(batch, [0, 2, 3, 1]) * 0.5 + 0.5
+        batch = batch.numpy()
         batch = batch[:, :, :, ::-1]  # convert BGR to RGB
 
         if is_ccrop:
@@ -109,60 +110,85 @@ mtcnn = MTCNN(
 )
 # Define the data loader for the input set of images
 
-orig_img_ds = datasets.ImageFolder(data_dir, transform=None)
+#orig_img_ds = datasets.ImageFolder(data_dir, transform=None)
+#
+#
+## overwrites class labels in dataset with path so path can be used for saving output in mtcnn batches
+#
+#orig_img_ds.samples = [
+#
+#    (p, p)
+#
+#    for p, _ in orig_img_ds.samples
+#
+#]
+#
+#
+#
+#loader = DataLoader(
+#
+#    orig_img_ds,
+#
+#    num_workers=workers,
+#
+#    batch_size=batch_size,
+#
+#    collate_fn=training.collate_pil
+#
+#)
+#
+#crop_paths = []
+#
+#box_probs = []
+#
+#
+#
+#for i, (x, b_paths) in enumerate(loader):
+#    #crops = [p.replace(data_dir, data_dir + '_cropped') for p in b_paths]
+#    crops = []
+#    for p in b_paths:
+#        q = p.replace(data_dir, data_dir + "_cropped")
+#        crops.append(q)
+#    crop_paths.extend(crops)
+#
+#for i, (x, b_paths) in enumerate(loader):
+#    if os.path.exists(data_dir + "_cropped") and i == 0:
+#        print("\n\nAlready cropped, skipping crop\n\n")
+#        break
+#
+#    crops = []
+#    for p in b_paths:
+#        q = p.replace(data_dir, data_dir + "_cropped")
+#        crops.append(q)
+#
+#    mtcnn(x, save_path=crops)
+#    print('\rBatch {} of {}'.format(i + 1, len(loader)), end='')
+## Remove mtcnn to reduce GPU memory usage
 
+def arc_emb(image):
+    with torch.no_grad():
+        image.resize((160,160))
+        x = mtcnn(image)
 
-# overwrites class labels in dataset with path so path can be used for saving output in mtcnn batches
+        if x is not None:
+            x.unsqueeze_(0)
+            x.reshape((1,)+x.shape)
 
-orig_img_ds.samples = [
+            if len(x.shape) == 4:
+                b_embeddings = perform_val(
+                cfg['embd_shape'], cfg['batch_size'], model, x,
+                is_ccrop=cfg['is_ccrop'])
+            else:
+                print("Not good array")
 
-    (p, p)
+        else:
+            return None
 
-    for p, _ in orig_img_ds.samples
+    return b_embeddings
 
-]
-
-
-
-loader = DataLoader(
-
-    orig_img_ds,
-
-    num_workers=workers,
-
-    batch_size=batch_size,
-
-    collate_fn=training.collate_pil
-
-)
-
-crop_paths = []
-
-box_probs = []
-
-
-
-for i, (x, b_paths) in enumerate(loader):
-    #crops = [p.replace(data_dir, data_dir + '_cropped') for p in b_paths]
-    crops = []
-    for p in b_paths:
-        q = p.replace(data_dir, data_dir + "_cropped")
-        crops.append(q)
-    crop_paths.extend(crops)
-
-for i, (x, b_paths) in enumerate(loader):
-    if os.path.exists(data_dir + "_cropped") and i == 0:
-        print("\n\nAlready cropped, skipping crop\n\n")
-        break
-
-    crops = []
-    for p in b_paths:
-        q = p.replace(data_dir, data_dir + "_cropped")
-        crops.append(q)
-
-    mtcnn(x, save_path=crops)
-    print('\rBatch {} of {}'.format(i + 1, len(loader)), end='')
-# Remove mtcnn to reduce GPU memory usage
+oima = Image.open(r"c:\users\mrdas\lovo.jpg")
+embo = arc_emb(oima)
+print(embo)
 
 del mtcnn
 
@@ -171,15 +197,15 @@ torch.cuda.empty_cache()
 
 
 
-trans = transforms.Compose([
-
-    np.float32,
-
-    transforms.ToTensor(),
-
-    fixed_image_standardization
-
-])
+#trans = transforms.Compose([
+#
+#    np.float32,
+#
+#    transforms.ToTensor(),
+#
+#    fixed_image_standardization
+#
+#])
 
 #generate = GeneratePairs(
 #    data_dir= data_dir+"_cropped",
@@ -190,21 +216,21 @@ trans = transforms.Compose([
 #
 #pairs_path = generate.pairs_filepath
 
-dataset = datasets.ImageFolder(data_dir + '_cropped', transform=trans)
-
-
-
-embed_loader = DataLoader(
-
-    dataset,
-
-    num_workers=workers,
-
-    batch_size=batch_size,
-
-    sampler=SequentialSampler(dataset)
-
-)
+#dataset = datasets.ImageFolder(data_dir + '_cropped', transform=trans)
+#
+#
+#
+#embed_loader = DataLoader(
+#
+#    dataset,
+#
+#    num_workers=workers,
+#
+#    batch_size=batch_size,
+#
+#    sampler=SequentialSampler(dataset)
+#
+#)
 # Load pretrained resnet model
 
 #resnet = InceptionResnetV1(
@@ -233,28 +259,28 @@ classes = []
 #        embeddings.extend(b_embeddings)
 #embeddings_dict = dict(zip(crop_paths,embeddings))
 
-em_list = []
-crop2 = []
-for i, (xb, yb) in tqdm(enumerate(embed_loader), total=len(embed_loader)): 
-    crop2.extend(yb)
-    em_list.append(xb)
-
-embeddings = np.concatenate(em_list, axis=0)
-
-embeddings2 = perform_val(
-            cfg['embd_shape'], cfg['batch_size'], model, embeddings,
-            is_ccrop=cfg['is_ccrop'])
-
-embeddings_dict = dict(zip(crop_paths,embeddings2))
-
-pairs_path = os.path.join(os.path.split(data_dir)[0], "pairs.txt")
-
-pgen_list = sorted(list(embeddings_dict.keys()))
-
-gen_ran(
-    pgen_list,
-    pairs_path
-)
+#em_list = []
+#crop2 = []
+#for i, (xb, yb) in tqdm(enumerate(embed_loader), total=len(embed_loader)): 
+#    crop2.extend(yb)
+#    em_list.append(xb)
+#
+#embeddings = np.concatenate(em_list, axis=0)
+#
+#embeddings2 = perform_val(
+#            cfg['embd_shape'], cfg['batch_size'], model, embeddings,
+#            is_ccrop=cfg['is_ccrop'])
+#
+#embeddings_dict = dict(zip(crop_paths,embeddings2))
+#
+#pairs_path = os.path.join(os.path.split(data_dir)[0], "pairs.txt")
+#
+#pgen_list = sorted(list(embeddings_dict.keys()))
+#
+#gen_ran(
+#    pgen_list,
+#    pairs_path
+#)
 
 def add_extension(path):
 
@@ -402,7 +428,7 @@ def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame, nrof_fold
 
         _, _, accuracy[fold_idx], is_fp, is_fn = calculate_accuracy(thresholds[best_threshold_index], dist[test_set], actual_issame[test_set])
 
-        print(f"\n\nThe best threshold appears to be: {thresholds[best_threshold_index]}\n\n")
+
 
         tpr = np.mean(tprs,0)
 
@@ -496,7 +522,7 @@ def calculate_val(thresholds, embeddings1, embeddings2, actual_issame, far_targe
 
         if np.max(far_train)>=far_target:
 
-            f = interpolate.interp1d(far_train, thresholds, kind='slinear', fill_value="extrapolate")
+            f = interpolate.interp1d(far_train, thresholds, kind='slinear')
 
             threshold = f(far_target)
 
@@ -566,13 +592,13 @@ def evaluate(embeddings, actual_issame, nrof_folds=10, distance_metric=0, subtra
 
     return tpr, fpr, accuracy, val, val_std, far, fp, fn
 
-pairs = read_pairs(pairs_path)
-
-path_list, issame_list = get_paths(data_dir+'_cropped', pairs)
-
-embeddings_n = np.array([embeddings_dict[path] for path in path_list])
-
-tpr, fpr, accuracy, val, val_std, far, fp, fn = evaluate(embeddings_n, issame_list)
-print(accuracy)
-
-print(np.mean(accuracy))
+#pairs = read_pairs(pairs_path)
+#
+#path_list, issame_list = get_paths(data_dir+'_cropped', pairs)
+#
+#embeddings_n = np.array([embeddings_dict[path] for path in path_list])
+#
+#tpr, fpr, accuracy, val, val_std, far, fp, fn = evaluate(embeddings_n, issame_list)
+#print(accuracy)
+#
+#print(np.mean(accuracy))

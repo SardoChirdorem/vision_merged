@@ -22,9 +22,12 @@ class Resize_Images:
         for folder in tqdm(os.listdir(self.PATH_input_dir)):
             PATH_folder = os.path.join(self.PATH_input_dir, folder)
             for image in os.listdir(PATH_folder):
-                img = cv2.imread(os.path.join(PATH_folder, image))
-                img = cv2.resize(img, (SIZE, SIZE))
-                cv2.imwrite(os.path.join(self.PATH_output_dir, folder, image.replace(' ', '_')), img)
+                try:
+                    img = cv2.imread(os.path.join(PATH_folder, image))
+                    img = cv2.resize(img, (SIZE, SIZE))
+                    cv2.imwrite(os.path.join(self.PATH_output_dir, folder, image.replace(' ', '_')), img)
+                except:
+                    pass
 
 if __name__ == "__main__":
     PATH_input_folder = sys.argv[1]
