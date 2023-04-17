@@ -32,13 +32,13 @@ from resize_images import Resize_Images
 from tqdm import tqdm
 from gen_mod import gen_ran
 
-data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\registered_faces'
+data_dir = r'c:\users\mrdas\documents\cynapto_folder\datasets\fr_copy'
 
 cfg_path = r"c:\users\mrdas\documents\cynapto_folder\merged\arcface_tf2\configs\arc_res50.yaml"
 
 resize = Resize_Images(
     data_dir,
-    os.path.join(os.path.split(data_dir)[0], "registered_resize")
+    os.path.join(os.path.split(data_dir)[0], "fr_resized")
 )
 
 try:
